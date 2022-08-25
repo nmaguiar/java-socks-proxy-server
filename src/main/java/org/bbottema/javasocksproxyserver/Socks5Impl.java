@@ -138,7 +138,12 @@ public class Socks5Impl extends Socks4Impl {
 		/*byte RSV =*/ getByte(); // Reserved. Must be'00'
 		ADDRESS_TYPE = getByte();
 
-		int Addr_Len = ADDR_Size[ADDRESS_TYPE];
+		int Addr_Len;
+		if (ADDRESS_TYPE == -1) {
+			Addr_Len = 0;
+		} else {
+			Addr_Len = ADDR_Size[ADDRESS_TYPE];
+		}
 		DST_Addr[0] = getByte();
 		if (ADDRESS_TYPE == 0x03) {
 			Addr_Len = DST_Addr[0] + 1;
@@ -178,7 +183,10 @@ public class Socks5Impl extends Socks4Impl {
 
 		if (isInvalidAddress()) {  // Gets the IP Address
 			refuseCommand((byte) 0x04); // Host Not Exists...
-			throw new Exception("SOCKS 5 - Unknown Host/IP address '" + m_ServerIP.toString() + "'");
+			if (m_ServerIP != null)
+				throw new Exception("SOCKS 5 - Unknown Host/IP address '" + m_ServerIP.toString() + "'");
+			else
+				throw new Exception("SOCKS 5 - Unknown Host/IP address (unrecognized IP)");
 		}
 
 		LOGGER.debug("SOCKS 5 - Accepted SOCKS5 Command: \"" + commName(socksCommand) + "\"");
