@@ -182,7 +182,7 @@ public class Socks4Impl {
 	}
 
 	public void bindReply(byte ReplyCode, InetAddress IA, int PT) {
-		SocksServer.callback.debug("Reply to Client : \"{}\"", replyName(ReplyCode));
+		SocksServer.callback.debug("Reply to Client : \"" + replyName(ReplyCode) + "\"");
 
 		final byte[] REPLY = new byte[8];
 		final byte[] IP = IA.getAddress();

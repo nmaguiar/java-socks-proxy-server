@@ -68,7 +68,7 @@ public class SocksServer {
 			final ServerSocket listenSocket = serverSocketFactory.createServerSocket(port);
 			listenSocket.setSoTimeout(SocksConstants.LISTEN_TIMEOUT);
 			
-			SocksServer.callback..debug("SOCKS server listening at port: " + listenSocket.getLocalPort());
+			SocksServer.callback.debug("SOCKS server listening at port: " + listenSocket.getLocalPort());
 
 			while (true) {
 				synchronized (SocksServer.this) {

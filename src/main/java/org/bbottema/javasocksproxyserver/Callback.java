@@ -7,5 +7,6 @@ public interface Callback {
     public void error(String msg);
     public void error(String msg, Exception e);
     public void debug(String msg);
+    public void debug(String msg, Exception e);
     public void info(String msg);
 }

@@ -36,4 +36,8 @@ public class CallbackImpl implements Callback {
         logger.error(msg, e);
     }
     
+    @Override
+    public void debug(String msg, Exception e) {
+        logger.error(msg, e);
+    }
 }
