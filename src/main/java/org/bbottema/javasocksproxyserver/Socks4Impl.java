@@ -142,11 +142,11 @@ public class Socks4Impl {
 			throw new Exception("Socks 4 - Unknown Host/IP address '" + m_ServerIP.toString());
 		}
 
-		LOGGER.debug("Accepted SOCKS 4 Command: \"" + commName(socksCommand) + "\"");
+		SocksServer.callback.debug("Accepted SOCKS 4 Command: \"" + commName(socksCommand) + "\"");
 	}
 
 	public void replyCommand(byte ReplyCode) {
-		LOGGER.debug("Socks 4 reply: \"" + replyName(ReplyCode) + "\"");
+		SocksServer.callback.debug("Socks 4 reply: \"" + replyName(ReplyCode) + "\"");
 
 		byte[] REPLY = new byte[8];
 		REPLY[0] = 0;
@@ -162,12 +162,12 @@ public class Socks4Impl {
 	}
 
 	protected void refuseCommand(byte errorCode) {
-		LOGGER.debug("Socks 4 - Refuse Command: \"" + replyName(errorCode) + "\"");
+		SocksServer.callback.debug("Socks 4 - Refuse Command: \"" + replyName(errorCode) + "\"");
 		replyCommand(errorCode);
 	}
 
 	public void connect() throws Exception {
-		LOGGER.debug("Connecting...");
+		SocksServer.callback.debug("Connecting...");
 		//	Connect to the Remote Host
 		try {
 			m_Parent.connectToServer(m_ServerIP.getHostAddress(), m_nServerPort);
@@ -177,12 +177,12 @@ public class Socks4Impl {
 					getSocketInfo(m_Parent.m_ServerSocket));
 		}
 
-		LOGGER.debug("Connected to " + getSocketInfo(m_Parent.m_ServerSocket));
+		SocksServer.callback.debug("Connected to " + getSocketInfo(m_Parent.m_ServerSocket));
 		replyCommand(getSuccessCode());
 	}
 
 	public void bindReply(byte ReplyCode, InetAddress IA, int PT) {
-		LOGGER.debug("Reply to Client : \"{}\"", replyName(ReplyCode));
+		SocksServer.callback.debug("Reply to Client : \"{}\"", replyName(ReplyCode));
 
 		final byte[] REPLY = new byte[8];
 		final byte[] IP = IA.getAddress();
@@ -199,7 +199,7 @@ public class Socks4Impl {
 		if (m_Parent.isActive()) {
 			m_Parent.sendToClient(REPLY);
 		} else {
-			LOGGER.debug("Closed BIND Client Connection");
+			SocksServer.callback.debug("Closed BIND Client Connection");
 		}
 	}
 
@@ -215,7 +215,7 @@ public class Socks4Impl {
 				sct.close();
 				return m_ExtLocalIP;
 			} catch (IOException e) {
-				LOGGER.debug("WARNING !!! THE LOCAL IP ADDRESS WAS CHANGED !");
+				SocksServer.callback.debug("WARNING !!! THE LOCAL IP ADDRESS WAS CHANGED !");
 			}
 		}
 
@@ -232,9 +232,9 @@ public class Socks4Impl {
 		}
 
 		if (IP == null) {
-			LOGGER.error("Error in BIND() - BIND reip Failed on all common hosts to determine external IP's");
+			SocksServer.callback.error("Error in BIND() - BIND reip Failed on all common hosts to determine external IP's");
 			for (Exception bindException : bindExceptions) {
-				LOGGER.debug(bindException.getMessage(), bindException);
+				SocksServer.callback.debug(bindException.getMessage(), bindException);
 			}
 		}
 
@@ -245,31 +245,31 @@ public class Socks4Impl {
 	public void bind() throws IOException {
 		int MyPort = 0;
 
-		LOGGER.debug("Binding...");
+		SocksServer.callback.debug("Binding...");
 		// Resolve External IP
 		InetAddress MyIP = resolveExternalLocalIP();
 
-		LOGGER.debug("Local IP : " + MyIP.toString());
+		SocksServer.callback.debug("Local IP : " + MyIP.toString());
 
 		ServerSocket ssock = new ServerSocket(0);
 		try {
 			ssock.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
 			MyPort = ssock.getLocalPort();
 		} catch (IOException e) {  // MyIP == null
-			LOGGER.debug("Error in BIND() - Can't BIND at any Port");
+			SocksServer.callback.debug("Error in BIND() - Can't BIND at any Port");
 			bindReply((byte) 92, MyIP, MyPort);
 			ssock.close();
 			return;
 		}
 
-		LOGGER.debug("BIND at : <" + MyIP.toString() + ":" + MyPort + ">");
+		SocksServer.callback.debug("BIND at : <" + MyIP.toString() + ":" + MyPort + ">");
 		bindReply((byte) 90, MyIP, MyPort);
 
 		Socket socket = null;
 
 		while (socket == null) {
 			if (m_Parent.checkClientData() >= 0) {
-				LOGGER.debug("BIND - Client connection closed");
+				SocksServer.callback.debug("BIND - Client connection closed");
 				ssock.close();
 				return;
 			}
@@ -291,13 +291,13 @@ public class Socks4Impl {
 		m_Parent.m_ServerSocket = socket;
 		m_Parent.prepareServer();
 
-		LOGGER.debug("BIND Connection from " + getSocketInfo(m_Parent.m_ServerSocket));
+		SocksServer.callback.debug("BIND Connection from " + getSocketInfo(m_Parent.m_ServerSocket));
 		ssock.close();
 	}
 
 	public void udp() throws IOException {
-		LOGGER.debug("Error - Socks 4 don't support UDP Association!");
-		LOGGER.debug("Check your Software please...");
+		SocksServer.callback.debug("Error - Socks 4 don't support UDP Association!");
+		SocksServer.callback.debug("Check your Software please...");
 		refuseCommand((byte) 91);    // SOCKS4 don't support UDP
 	}
 }

@@ -34,9 +34,9 @@ public class ProxyHandler implements Runnable {
 		try {
 			m_ClientSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
 		} catch (SocketException e) {
-			LOGGER.error("Socket Exception during seting Timeout.");
+			SocksServer.callback.error("Socket Exception during seting Timeout.");
 		}
-		LOGGER.debug("Proxy Created.");
+		SocksServer.callback.debug("Proxy Created.");
 	}
 
 	public void setLock(Object lock) {
@@ -44,14 +44,14 @@ public class ProxyHandler implements Runnable {
 	}
 
 	public void run() {
-		LOGGER.debug("Proxy Started.");
+		SocksServer.callback.debug("Proxy Started.");
 		setLock(this);
 
 		if (prepareClient()) {
 			processRelay();
 			close();
 		} else {
-			LOGGER.error("Proxy - client socket is null !");
+			SocksServer.callback.error("Proxy - client socket is null !");
 		}
 	}
 
@@ -92,7 +92,7 @@ public class ProxyHandler implements Runnable {
 		m_ServerSocket = null;
 		m_ClientSocket = null;
 
-		LOGGER.debug("Proxy Closed.");
+		SocksServer.callback.debug("Proxy Closed.");
 	}
 
 	public void sendToClient(byte[] buffer) {
@@ -105,7 +105,7 @@ public class ProxyHandler implements Runnable {
 				m_ClientOutput.write(buffer, 0, len);
 				m_ClientOutput.flush();
 			} catch (IOException e) {
-				LOGGER.error("Sending data to client");
+				SocksServer.callback.error("Sending data to client");
 			}
 		}
 	}
@@ -116,7 +116,7 @@ public class ProxyHandler implements Runnable {
 				m_ServerOutput.write(buffer, 0, len);
 				m_ServerOutput.flush();
 			} catch (IOException e) {
-				LOGGER.error("Sending data to server");
+				SocksServer.callback.error("Sending data to server");
 			}
 		}
 	}
@@ -129,14 +129,14 @@ public class ProxyHandler implements Runnable {
 
 		if (server.equals("")) {
 			close();
-			LOGGER.error("Invalid Remote Host Name - Empty String !!!");
+			SocksServer.callback.error("Invalid Remote Host Name - Empty String !!!");
 			return;
 		}
 
 		m_ServerSocket = new Socket(server, port);
 		m_ServerSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
 
-		LOGGER.debug("Connected to " + getSocketInfo(m_ServerSocket));
+		SocksServer.callback.debug("Connected to " + getSocketInfo(m_ServerSocket));
 		prepareServer();
 	}
 
@@ -155,8 +155,8 @@ public class ProxyHandler implements Runnable {
 			m_ClientOutput = m_ClientSocket.getOutputStream();
 			return true;
 		} catch (IOException e) {
-			LOGGER.error("Proxy - can't get I/O streams!");
-			LOGGER.error(e.getMessage(), e);
+			SocksServer.callback.error("Proxy - can't get I/O streams!");
+			SocksServer.callback.error(e.getMessage(), e);
 			return false;
 		}
 	}
@@ -173,10 +173,10 @@ public class ProxyHandler implements Runnable {
 					comm = new Socks5Impl(this);
 					break;
 				default:
-					LOGGER.error("Invalid SOKCS version : " + SOCKS_Version);
+					SocksServer.callback.error("Invalid SOKCS version : " + SOCKS_Version);
 					return;
 			}
-			LOGGER.debug("Accepted SOCKS " + SOCKS_Version + " Request.");
+			SocksServer.callback.debug("Accepted SOCKS " + SOCKS_Version + " Request.");
 
 			comm.authenticate(SOCKS_Version);
 			comm.getClientCommand();
@@ -197,7 +197,7 @@ public class ProxyHandler implements Runnable {
 					break;
 			}
 		} catch (Exception e) {
-			LOGGER.error(e.getMessage(), e);
+			SocksServer.callback.error(e.getMessage(), e);
 		}
 	}
 
@@ -257,7 +257,7 @@ public class ProxyHandler implements Runnable {
 			} catch (InterruptedIOException e) {
 				return 0;
 			} catch (IOException e) {
-				LOGGER.debug("Client connection Closed!");
+				SocksServer.callback.debug("Client connection Closed!");
 				close();    //	Close the server on this exception
 				return -1;
 			}
@@ -280,7 +280,7 @@ public class ProxyHandler implements Runnable {
 			} catch (InterruptedIOException e) {
 				return 0;
 			} catch (IOException e) {
-				LOGGER.debug("Server connection Closed!");
+				SocksServer.callback.debug("Server connection Closed!");
 				close();    //	Close the server on this exception
 				return -1;
 			}
@@ -294,7 +294,7 @@ public class ProxyHandler implements Runnable {
 	}
 
 	private void logData(final int traffic, final String dataSource) {
-		LOGGER.debug(format("%s : %s >> <%s/%s:%d> : %d bytes.",
+		SocksServer.callback.debug(format("%s : %s >> <%s/%s:%d> : %d bytes.",
 				dataSource,
 				getSocketInfo(m_ClientSocket),
 				comm.m_ServerIP.getHostName(),

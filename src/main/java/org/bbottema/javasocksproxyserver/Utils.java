@@ -22,7 +22,7 @@ public final class Utils {
 		StringBuilder sIA = new StringBuilder();
 
 		if (addr.length < 4) {
-			LOGGER.error("calcInetAddress() - Invalid length of IP v4 - " + addr.length + " bytes");
+			SocksServer.callback.error("calcInetAddress() - Invalid length of IP v4 - " + addr.length + " bytes");
 			return null;
 		}
 
