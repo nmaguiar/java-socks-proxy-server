@@ -14,15 +14,15 @@ public class SocksServer {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksServer.class);
 	
 	protected boolean stopping = false;
-	public static Callback callback;
+	public static Callback callback = null;
 	
 	public synchronized void start(int listenPort) {
-		SocksServer.callback = new CallbackImpl(LOGGER);
+		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
 		start(listenPort, ServerSocketFactory.getDefault());
 	}
 	
 	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory) {
-		SocksServer.callback = new CallbackImpl(LOGGER);
+		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
 		this.stopping = false;
 		new Thread(new ServerProcess(listenPort, serverSocketFactory)).start();
 	}

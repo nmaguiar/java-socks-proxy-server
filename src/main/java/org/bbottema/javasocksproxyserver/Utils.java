@@ -14,7 +14,7 @@ import static java.lang.String.format;
 
 public final class Utils {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+	//private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
 
 	@Nullable
 	public static InetAddress calcInet6Address(byte[] addr) {

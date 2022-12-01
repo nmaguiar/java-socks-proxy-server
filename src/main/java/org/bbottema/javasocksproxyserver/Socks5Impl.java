@@ -24,7 +24,7 @@ public class Socks5Impl extends Socks4Impl {
 			-1, //'03' First Byte is Len
 			16  //'04' IP v6 - 16bytes
 	};
-	private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Impl.class);
+	//private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Impl.class);
 	private static final byte[] SRE_REFUSE = {(byte) 0x05, (byte) 0xFF};
 	private static final byte[] SRE_ACCEPT = {(byte) 0x05, (byte) 0x00};
 	private static final int MAX_ADDR_LEN = 255;
@@ -179,7 +179,7 @@ public class Socks5Impl extends Socks4Impl {
 			throw new Exception("Unsupported Address Type - IP v6");
 		}*/
 
-		if ((ADDRESS_TYPE >= 0x04) || (ADDRESS_TYPE <= 0)) {
+		if ((ADDRESS_TYPE > 0x04) || (ADDRESS_TYPE <= 0)) {
 			SocksServer.callback.error("SOCKS 5 - GetClientCommand() - Unsupported Address Type: " + ADDRESS_TYPE);
 			refuseCommand((byte) 0x08);
 			throw new Exception("SOCKS 5 - Unsupported Address Type: " + ADDRESS_TYPE);
@@ -201,10 +201,10 @@ public class Socks5Impl extends Socks4Impl {
 
 		final int pt;
 
-		byte[] REPLY = new byte[10];
+		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[22] : new byte[10];
 		byte[] IP;
 		if (ADDRESS_TYPE == 0x04) {
-			IP = new byte[8];
+			IP = new byte[16];
 		} else {
 			IP = new byte[4];
 		}
@@ -218,10 +218,21 @@ public class Socks5Impl extends Socks4Impl {
 				IP[1] = 0;
 				IP[2] = 0;
 				IP[3] = 0;
+
 				IP[4] = 0;
 				IP[5] = 0;
 				IP[6] = 0;
 				IP[7] = 0;
+
+				IP[8] = 0;
+				IP[9] = 0;
+				IP[10] = 0;
+				IP[11] = 0;
+
+				IP[12] = 0;
+				IP[13] = 0;
+				IP[14] = 0;
+				IP[15] = 0;				
 			} else {
 				// IPv4
 				IP[0] = 0;
@@ -252,7 +263,7 @@ public class Socks5Impl extends Socks4Impl {
 
 		SocksServer.callback.debug("BIND Reply to Client \"" + replyName(replyCode) + "\"");
 
-		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[14] : new byte[10];
+		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[22] : new byte[10];
 		if (IA != null) IP = IA.getAddress();
 
 		formGenericReply((byte) ((int) replyCode - 90), PT, REPLY, IP);
@@ -272,7 +283,7 @@ public class Socks5Impl extends Socks4Impl {
 		}
 		byte[] IP = IA.getAddress();
 
-		byte[] REPLY = new byte[10];
+		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[22] : new byte[10];
 
 		formGenericReply(replyCode, pt, REPLY, IP);
 
@@ -283,7 +294,11 @@ public class Socks5Impl extends Socks4Impl {
 		REPLY[0] = SocksConstants.SOCKS5_Version;
 		REPLY[1] = replyCode;
 		REPLY[2] = 0x00;        // Reserved	'00'
-		REPLY[3] = 0x01;        // DOMAIN NAME Address Type IP v4
+		if (ADDRESS_TYPE == 0x04) {
+			REPLY[3] = 0x04;
+		} else {
+			REPLY[3] = 0x01;
+		} // DOMAIN NAME Address Type IP v4
 		REPLY[4] = IP[0];
 		REPLY[5] = IP[1];
 		REPLY[6] = IP[2];
@@ -293,8 +308,19 @@ public class Socks5Impl extends Socks4Impl {
 			REPLY[9] = IP[5];
 			REPLY[10] = IP[6];
 			REPLY[11] = IP[7];
-			REPLY[12] = (byte) ((pt & 0xFF00) >> 8);// Port High
-			REPLY[14] = (byte) (pt & 0x00FF);      // Port Low
+
+			REPLY[12] = IP[8];
+			REPLY[13] = IP[9];
+			REPLY[14] = IP[10];
+			REPLY[15] = IP[11];
+
+			REPLY[16] = IP[12];
+			REPLY[17] = IP[13];
+			REPLY[18] = IP[14];
+			REPLY[19] = IP[15];
+
+			REPLY[20] = (byte) ((pt & 0xFF00) >> 8);// Port High
+			REPLY[21] = (byte) (pt & 0x00FF);      // Port Low
  		} else {
 			REPLY[8] = (byte) ((pt & 0xFF00) >> 8);// Port High
 			REPLY[9] = (byte) (pt & 0x00FF);      // Port Low

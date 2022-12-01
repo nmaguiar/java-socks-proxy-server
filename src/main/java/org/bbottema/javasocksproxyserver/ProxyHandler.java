@@ -15,7 +15,7 @@ import static org.bbottema.javasocksproxyserver.Utils.getSocketInfo;
 
 public class ProxyHandler implements Runnable {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(ProxyHandler.class);
+	//private static final Logger LOGGER = LoggerFactory.getLogger(ProxyHandler.class);
 
 	private InputStream m_ClientInput = null;
 	private OutputStream m_ClientOutput = null;

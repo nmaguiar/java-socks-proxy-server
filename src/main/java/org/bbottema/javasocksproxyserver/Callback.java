@@ -3,10 +3,10 @@ package org.bbottema.javasocksproxyserver;
 import java.util.Map;
 
 public interface Callback {
-    public boolean exec(Map data);
-    public void error(String msg);
-    public void error(String msg, Exception e);
-    public void debug(String msg);
-    public void debug(String msg, Exception e);
-    public void info(String msg);
+    abstract public boolean exec(Map data);
+    abstract public void error(String msg);
+    abstract public void error(String msg, Exception e);
+    abstract public void debug(String msg);
+    abstract public void debug(String msg, Exception e);
+    abstract public void info(String msg);
 }

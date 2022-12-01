@@ -17,7 +17,7 @@ import static org.bbottema.javasocksproxyserver.Utils.getSocketInfo;
 
 public class Socks4Impl {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Socks4Impl.class);
+	//private static final Logger LOGGER = LoggerFactory.getLogger(Socks4Impl.class);
 
 	final ProxyHandler m_Parent;
 	final byte[] DST_Port = new byte[2];
