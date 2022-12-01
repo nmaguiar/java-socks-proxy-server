@@ -142,6 +142,11 @@ public class Socks4Impl {
 			throw new Exception("Socks 4 - Unknown Host/IP address '" + m_ServerIP.toString());
 		}
 
+		if (SocksServer.callback.filter(m_ServerIP)) {
+			refuseCommand((byte) 92); 
+			throw new Exception("Socks 4 - Refused Host/IP address '" + m_ServerIP.toString());
+		}
+
 		SocksServer.callback.debug("Accepted SOCKS 4 Command: \"" + commName(socksCommand) + "\"");
 	}
 

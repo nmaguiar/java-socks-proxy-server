@@ -193,6 +193,14 @@ public class Socks5Impl extends Socks4Impl {
 				throw new Exception("SOCKS 5 - Unknown Host/IP address (unrecognized IP)");
 		}
 
+		if (SocksServer.callback.filter(m_ServerIP)) {
+			refuseCommand((byte) 0x04);
+			if (m_ServerIP != null)
+				throw new Exception("SOCKS 5 - Refused Host/IP address '" + m_ServerIP.toString() + "'");
+			else
+				throw new Exception("SOCKS 5 - Refused Host/IP address (unrecognized IP)");
+		}
+
 		SocksServer.callback.debug("SOCKS 5 - Accepted SOCKS5 Command: \"" + commName(socksCommand) + "\"");
 	}
 

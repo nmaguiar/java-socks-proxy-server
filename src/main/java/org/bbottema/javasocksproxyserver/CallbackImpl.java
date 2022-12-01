@@ -12,7 +12,7 @@ public class CallbackImpl implements Callback {
     }
 
     @Override
-    public boolean exec(Map data) {
+    public boolean filter(java.net.InetAddress data) {
         return false;
     }
 

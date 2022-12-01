@@ -173,7 +173,7 @@ public class ProxyHandler implements Runnable {
 					comm = new Socks5Impl(this);
 					break;
 				default:
-					SocksServer.callback.error("Invalid SOKCS version : " + SOCKS_Version);
+					SocksServer.callback.error("Invalid SOCKS version : " + SOCKS_Version);
 					return;
 			}
 			SocksServer.callback.debug("Accepted SOCKS " + SOCKS_Version + " Request.");
