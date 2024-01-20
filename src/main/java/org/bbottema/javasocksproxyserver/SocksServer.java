@@ -19,7 +19,8 @@ public class SocksServer {
 	public static Callback callback = null;
 
 	public SocksServer() {
-		this.pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+		int _c = Runtime.getRuntime().availableProcessors() * 2;
+		this.pool = Executors.newFixedThreadPool(_c > 2 ? _c : 2);
 	}
 
 	public SocksServer(int _cores) {
