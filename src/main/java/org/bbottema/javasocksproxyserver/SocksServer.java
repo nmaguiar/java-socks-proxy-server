@@ -8,13 +8,19 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SocksServer {
-
+	private final ExecutorService pool;
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksServer.class);
 
 	protected boolean stopping = false;
 	public static Callback callback = null;
+
+	public SocksServer() {
+		this.pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+	}
 
 	public synchronized void start(int listenPort) {
 		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
@@ -24,7 +30,7 @@ public class SocksServer {
 	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory) {
 		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
 		this.stopping = false;
-		new Thread(new ServerProcess(listenPort, serverSocketFactory)).start();
+		pool.execute(new ServerProcess(listenPort, serverSocketFactory));
 	}
 
 	public synchronized void start(int listenPort, Callback callback) {
@@ -35,11 +41,27 @@ public class SocksServer {
 	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory, Callback callback) {
 		SocksServer.callback = callback;
 		this.stopping = false;
-		new Thread(new ServerProcess(listenPort, serverSocketFactory)).start();
+		pool.execute(new ServerProcess(listenPort, serverSocketFactory));
 	}
 
 	public synchronized void stop() {
 		stopping = true;
+		pool.shutdown();
+		try {
+			// Wait a while for existing tasks to terminate
+			if (!pool.awaitTermination(60, java.util.concurrent.TimeUnit.SECONDS)) {
+				pool.shutdownNow(); // Cancel currently executing tasks
+				// Wait a while for tasks to respond to being cancelled
+				if (!pool.awaitTermination(60, java.util.concurrent.TimeUnit.SECONDS)) {
+					LOGGER.error("Pool did not terminate");
+				}
+			}
+		} catch (InterruptedException ie) {
+			// (Re-)Cancel if current thread also interrupted
+			pool.shutdownNow();
+			// Preserve interrupt status
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	private class ServerProcess implements Runnable {
