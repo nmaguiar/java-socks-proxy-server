@@ -1,7 +1,5 @@
 package org.bbottema.javasocksproxyserver;
 
-import java.util.Map;
-
 import org.slf4j.Logger;
 
 public class CallbackImpl implements Callback {

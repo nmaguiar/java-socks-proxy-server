@@ -1,7 +1,5 @@
 package org.bbottema.javasocksproxyserver;
 
-import java.util.Map;
-
 public interface Callback {
     abstract public boolean filter(java.net.InetAddress data);
     abstract public void error(String msg);
