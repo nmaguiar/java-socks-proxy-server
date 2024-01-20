@@ -12,22 +12,22 @@ import java.net.Socket;
 public class SocksServer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocksServer.class);
-	
+
 	protected boolean stopping = false;
 	public static Callback callback = null;
-	
+
 	public synchronized void start(int listenPort) {
 		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
 		start(listenPort, ServerSocketFactory.getDefault());
 	}
-	
+
 	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory) {
 		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
 		this.stopping = false;
 		new Thread(new ServerProcess(listenPort, serverSocketFactory)).start();
 	}
 
-	public synchronized	void start(int listenPort, Callback callback) {
+	public synchronized void start(int listenPort, Callback callback) {
 		SocksServer.callback = callback;
 		start(listenPort, ServerSocketFactory.getDefault());
 	}
@@ -41,17 +41,17 @@ public class SocksServer {
 	public synchronized void stop() {
 		stopping = true;
 	}
-	
+
 	private class ServerProcess implements Runnable {
-		
+
 		protected final int port;
 		private final ServerSocketFactory serverSocketFactory;
-		
+
 		public ServerProcess(int port, ServerSocketFactory serverSocketFactory) {
 			this.port = port;
 			this.serverSocketFactory = serverSocketFactory;
 		}
-		
+
 		@Override
 		public void run() {
 			SocksServer.callback.debug("SOCKS server started...");
@@ -67,7 +67,7 @@ public class SocksServer {
 		protected void handleClients(int port) throws IOException {
 			final ServerSocket listenSocket = serverSocketFactory.createServerSocket(port);
 			listenSocket.setSoTimeout(SocksConstants.LISTEN_TIMEOUT);
-			
+
 			SocksServer.callback.debug("SOCKS server listening at port: " + listenSocket.getLocalPort());
 
 			while (true) {
@@ -93,7 +93,7 @@ public class SocksServer {
 				SocksServer.callback.debug("Connection from : " + Utils.getSocketInfo(clientSocket));
 				new Thread(new ProxyHandler(clientSocket)).start();
 			} catch (InterruptedIOException e) {
-				//	This exception is thrown when accept timeout is expired
+				// This exception is thrown when accept timeout is expired
 			} catch (Exception e) {
 				SocksServer.callback.error(e.getMessage(), e);
 			}

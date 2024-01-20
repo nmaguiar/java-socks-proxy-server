@@ -1,14 +1,14 @@
 package org.bbottema.javasocksproxyserver;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.String.format;
 import static org.bbottema.javasocksproxyserver.Utils.getSocketInfo;
@@ -21,7 +21,7 @@ public class ProxyHandler implements Runnable {
 	private OutputStream m_ClientOutput = null;
 	private InputStream m_ServerInput = null;
 	private OutputStream m_ServerOutput = null;
-	private Object m_lock;
+	private ReentrantLock m_lock;
 	private Socks4Impl comm = null;
 
 	Socket m_ClientSocket;
@@ -29,7 +29,7 @@ public class ProxyHandler implements Runnable {
 	byte[] m_Buffer = new byte[SocksConstants.DEFAULT_BUF_SIZE];
 
 	public ProxyHandler(Socket clientSocket) {
-		m_lock = this;
+		m_lock = new ReentrantLock();
 		m_ClientSocket = clientSocket;
 		try {
 			m_ClientSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
@@ -39,13 +39,13 @@ public class ProxyHandler implements Runnable {
 		SocksServer.callback.debug("Proxy Created.");
 	}
 
-	public void setLock(Object lock) {
+	public void setLock(ReentrantLock lock) {
 		this.m_lock = lock;
 	}
 
 	public void run() {
 		SocksServer.callback.debug("Proxy Started.");
-		setLock(this);
+		setLock(new ReentrantLock());
 
 		if (prepareClient()) {
 			processRelay();
@@ -141,9 +141,12 @@ public class ProxyHandler implements Runnable {
 	}
 
 	protected void prepareServer() throws IOException {
-		synchronized (m_lock) {
-			m_ServerInput = m_ServerSocket.getInputStream();
-			m_ServerOutput = m_ServerSocket.getOutputStream();
+		m_lock.lock();
+		try {
+			m_ServerInput = new BufferedInputStream(m_ServerSocket.getInputStream());
+			m_ServerOutput = new BufferedOutputStream(m_ServerSocket.getOutputStream());
+		} finally {
+			m_lock.unlock();
 		}
 	}
 
@@ -151,8 +154,8 @@ public class ProxyHandler implements Runnable {
 		if (m_ClientSocket == null) return false;
 
 		try {
-			m_ClientInput = m_ClientSocket.getInputStream();
-			m_ClientOutput = m_ClientSocket.getOutputStream();
+			m_ClientInput = new BufferedInputStream(m_ClientSocket.getInputStream());
+			m_ClientOutput = new BufferedOutputStream(m_ClientSocket.getOutputStream());
 			return true;
 		} catch (IOException e) {
 			SocksServer.callback.error("Proxy - can't get I/O streams!");
@@ -246,7 +249,8 @@ public class ProxyHandler implements Runnable {
 	}
 
 	public int checkClientData() {
-		synchronized (m_lock) {
+		m_lock.lock();
+		try {
 			//	The client side is not opened.
 			if (m_ClientInput == null) return -1;
 
@@ -265,11 +269,14 @@ public class ProxyHandler implements Runnable {
 			if (dlen < 0) close();
 
 			return dlen;
+		} finally {
+			m_lock.unlock();
 		}
 	}
 
 	public int checkServerData() {
-		synchronized (m_lock) {
+		m_lock.lock();
+		try {
 			//	The client side is not opened.
 			if (m_ServerInput == null) return -1;
 
@@ -290,6 +297,8 @@ public class ProxyHandler implements Runnable {
 			}
 
 			return dlen;
+		} finally {
+			m_lock.unlock();
 		}
 	}
 

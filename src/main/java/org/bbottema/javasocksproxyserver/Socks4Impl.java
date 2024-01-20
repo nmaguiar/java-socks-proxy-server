@@ -1,16 +1,12 @@
 package org.bbottema.javasocksproxyserver;
 
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 import static org.bbottema.javasocksproxyserver.Utils.getSocketInfo;
@@ -215,7 +211,9 @@ public class Socks4Impl {
 		if (m_ExtLocalIP != null) {
 			Socket sct;
 			try {
+				//final int TIMEOUT = 5000;
 				sct = new Socket(m_ExtLocalIP, m_Parent.getPort());
+				//sct.setSoTimeout(TIMEOUT);
 				IP = sct.getLocalAddress();
 				sct.close();
 				return m_ExtLocalIP;
@@ -224,23 +222,36 @@ public class Socks4Impl {
 			}
 		}
 
-		final String[] hosts = {"www.wikipedia.org", "www.google.com", "www.microsoft.com", "www.amazon.com", "www.zombo.com", "www.ebay.com"};
+		/*final String[] hosts = {"www.wikipedia.org", "www.google.com", "www.microsoft.com", "www.amazon.com", "www.zombo.com", "www.ebay.com"};
 
 		final List<Exception> bindExceptions = new ArrayList<>();
+		Socket sct = null;
 		for (String host : hosts) {
-			try (Socket sct = new Socket(InetAddress.getByName(host), 80)) {
-				IP = sct.getLocalAddress();
-				break;
-			} catch (Exception e) {
-				bindExceptions.add(e);
-			}
+            try {
+                if (sct == null) {
+                    sct = new Socket();
+                }
+                sct.connect(new InetSocketAddress(InetAddress.getByName(host), 80));
+                IP = sct.getLocalAddress();
+                break;
+            } catch (Exception e) {
+                bindExceptions.add(e);
+            }
 		}
+
+        if (sct != null) {
+            try {
+                sct.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }*/
 
 		if (IP == null) {
 			SocksServer.callback.error("Error in BIND() - BIND reip Failed on all common hosts to determine external IP's");
-			for (Exception bindException : bindExceptions) {
+			/*for (Exception bindException : bindExceptions) {
 				SocksServer.callback.debug(bindException.getMessage(), bindException);
-			}
+			}*/
 		}
 
 		m_ExtLocalIP = IP;
