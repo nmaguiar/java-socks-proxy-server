@@ -22,6 +22,10 @@ public class SocksServer {
 		this.pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
 	}
 
+	public SocksServer(int _cores) {
+		this.pool = Executors.newFixedThreadPool(_cores);
+	}
+
 	public synchronized void start(int listenPort) {
 		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
 		start(listenPort, ServerSocketFactory.getDefault());
