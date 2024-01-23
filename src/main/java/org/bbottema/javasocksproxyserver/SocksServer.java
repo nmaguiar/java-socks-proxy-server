@@ -19,12 +19,14 @@ public class SocksServer {
 	public static Callback callback = null;
 
 	public SocksServer() {
-		int _c = Runtime.getRuntime().availableProcessors() * 2;
-		this.pool = Executors.newFixedThreadPool(_c > 2 ? _c : 2);
+		/*int _c = Runtime.getRuntime().availableProcessors() * 2;
+		this.pool = Executors.newFixedThreadPool(_c > 2 ? _c : 2);*/
+		this.pool = Executors.newCachedThreadPool();
 	}
 
 	public SocksServer(int _cores) {
-		this.pool = Executors.newFixedThreadPool(_cores);
+		//this.pool = Executors.newFixedThreadPool(_cores);
+		this.pool = Executors.newCachedThreadPool();
 	}
 
 	public synchronized void start(int listenPort) {
