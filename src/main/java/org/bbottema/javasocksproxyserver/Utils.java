@@ -2,8 +2,6 @@ package org.bbottema.javasocksproxyserver;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
@@ -12,7 +10,32 @@ import static java.lang.String.format;
 
 public final class Utils {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+	//private static final Logger LOGGER = LoggerFactory.getLogger(Utils.class);
+
+	@Nullable
+	public static InetAddress calcInet6Address(byte[] addr) {
+		InetAddress IA;
+		StringBuilder sIA = new StringBuilder();
+
+		if (addr.length < 6) {
+			SocksServer.callback.error("calcInetAddress() - Invalid length of IP v6 - " + addr.length + " bytes");
+			return null;
+		}
+
+		// IP v6 Address Type
+		for (int i = 0; i < 6; i++) {
+			sIA.append(byte2int(addr[i]));
+			if (i < 3) sIA.append(".");
+		}
+
+		try {
+			IA = InetAddress.getByName(sIA.toString());
+		} catch (UnknownHostException e) {
+			return null;
+		}
+
+		return IA;
+	}
 
 	@Nullable
 	public static InetAddress calcInetAddress(byte[] addr) {
@@ -20,7 +43,7 @@ public final class Utils {
 		StringBuilder sIA = new StringBuilder();
 
 		if (addr.length < 4) {
-			LOGGER.error("calcInetAddress() - Invalid length of IP v4 - " + addr.length + " bytes");
+			SocksServer.callback.error("calcInetAddress() - Invalid length of IP v4 - " + addr.length + " bytes");
 			return null;
 		}
 

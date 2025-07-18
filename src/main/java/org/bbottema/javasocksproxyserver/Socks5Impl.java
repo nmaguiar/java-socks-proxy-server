@@ -24,7 +24,7 @@ public class Socks5Impl extends Socks4Impl {
 			-1, //'03' First Byte is Len
 			16  //'04' IP v6 - 16bytes
 	};
-	private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Impl.class);
+	//private static final Logger LOGGER = LoggerFactory.getLogger(Socks5Impl.class);
 	private static final byte[] SRE_REFUSE = {(byte) 0x05, (byte) 0xFF};
 	private static final byte[] SRE_ACCEPT = {(byte) 0x05, (byte) 0x00};
 	private static final int MAX_ADDR_LEN = 255;
@@ -58,10 +58,14 @@ public class Socks5Impl extends Socks4Impl {
 			case 0x01:
 				IA = Utils.calcInetAddress(addr);
 				break;
+			// Version IP 6
+			case 0x04:
+			  	IA = Utils.calcInet6Address(addr);
+				break;
 			// Version IP DOMAIN NAME
 			case 0x03:
 				if (addr[0] <= 0) {
-					LOGGER.error("SOCKS 5 - calcInetAddress() : BAD IP in command - size : " + addr[0]);
+					SocksServer.callback.error("SOCKS 5 - calcInetAddress() : BAD IP in command - size : " + addr[0]);
 					return null;
 				}
 				StringBuilder sIA = new StringBuilder();
@@ -108,13 +112,13 @@ public class Socks5Impl extends Socks4Impl {
 	}
 
 	public void refuseAuthentication(String msg) {
-		LOGGER.debug("SOCKS 5 - Refuse Authentication: '" + msg + "'");
+		SocksServer.callback.debug("SOCKS 5 - Refuse Authentication: '" + msg + "'");
 		m_Parent.sendToClient(SRE_REFUSE);
 	}
 
 
 	public void acceptAuthentication() {
-		LOGGER.debug("SOCKS 5 - Accepts Auth. method 'NO_AUTH'");
+		SocksServer.callback.debug("SOCKS 5 - Accepts Auth. method 'NO_AUTH'");
 		byte[] tSRE_Accept = SRE_ACCEPT;
 		tSRE_Accept[0] = SOCKS_Version;
 		m_Parent.sendToClient(tSRE_Accept);
@@ -156,7 +160,7 @@ public class Socks5Impl extends Socks4Impl {
 		DST_Port[1] = getByte();
 
 		if (SOCKS_Version != SocksConstants.SOCKS5_Version) {
-			LOGGER.debug("SOCKS 5 - Incorrect SOCKS Version of Command: " +
+			SocksServer.callback.debug("SOCKS 5 - Incorrect SOCKS Version of Command: " +
 					SOCKS_Version);
 			refuseCommand((byte) 0xFF);
 			throw new Exception("Incorrect SOCKS Version of Command: " +
@@ -164,19 +168,19 @@ public class Socks5Impl extends Socks4Impl {
 		}
 
 		if ((socksCommand < SocksConstants.SC_CONNECT) || (socksCommand > SocksConstants.SC_UDP)) {
-			LOGGER.error("SOCKS 5 - GetClientCommand() - Unsupported Command : \"" + commName(socksCommand) + "\"");
+			SocksServer.callback.error("SOCKS 5 - GetClientCommand() - Unsupported Command : \"" + commName(socksCommand) + "\"");
 			refuseCommand((byte) 0x07);
 			throw new Exception("SOCKS 5 - Unsupported Command: \"" + socksCommand + "\"");
 		}
 
-		if (ADDRESS_TYPE == 0x04) {
-			LOGGER.error("SOCKS 5 - GetClientCommand() - Unsupported Address Type - IP v6");
+		/*if (ADDRESS_TYPE == 0x04) {
+			SocksServer.callback.error("SOCKS 5 - GetClientCommand() - Unsupported Address Type - IP v6");
 			refuseCommand((byte) 0x08);
 			throw new Exception("Unsupported Address Type - IP v6");
-		}
+		}*/
 
-		if ((ADDRESS_TYPE >= 0x04) || (ADDRESS_TYPE <= 0)) {
-			LOGGER.error("SOCKS 5 - GetClientCommand() - Unsupported Address Type: " + ADDRESS_TYPE);
+		if ((ADDRESS_TYPE > 0x04) || (ADDRESS_TYPE <= 0)) {
+			SocksServer.callback.error("SOCKS 5 - GetClientCommand() - Unsupported Address Type: " + ADDRESS_TYPE);
 			refuseCommand((byte) 0x08);
 			throw new Exception("SOCKS 5 - Unsupported Address Type: " + ADDRESS_TYPE);
 		}
@@ -189,24 +193,62 @@ public class Socks5Impl extends Socks4Impl {
 				throw new Exception("SOCKS 5 - Unknown Host/IP address (unrecognized IP)");
 		}
 
-		LOGGER.debug("SOCKS 5 - Accepted SOCKS5 Command: \"" + commName(socksCommand) + "\"");
+		if (SocksServer.callback.filter(m_ServerIP)) {
+			refuseCommand((byte) 0x04);
+			if (m_ServerIP != null)
+				throw new Exception("SOCKS 5 - Refused Host/IP address '" + m_ServerIP.toString() + "'");
+			else
+				throw new Exception("SOCKS 5 - Refused Host/IP address (unrecognized IP)");
+		}
+
+		SocksServer.callback.debug("SOCKS 5 - Accepted SOCKS5 Command: \"" + commName(socksCommand) + "\"");
 	}
 
 	public void replyCommand(byte replyCode) {
-		LOGGER.debug("SOCKS 5 - Reply to Client \"" + replyName(replyCode) + "\"");
+		SocksServer.callback.debug("SOCKS 5 - Reply to Client \"" + replyName(replyCode) + "\"");
 
 		final int pt;
 
-		byte[] REPLY = new byte[10];
-		byte[] IP = new byte[4];
+		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[22] : new byte[10];
+		byte[] IP;
+		if (ADDRESS_TYPE == 0x04) {
+			IP = new byte[16];
+		} else {
+			IP = new byte[4];
+		}
 
 		if (m_Parent.m_ServerSocket != null) {
 			pt = m_Parent.m_ServerSocket.getLocalPort();
 		} else {
-			IP[0] = 0;
-			IP[1] = 0;
-			IP[2] = 0;
-			IP[3] = 0;
+			if (ADDRESS_TYPE == 0x04) {
+				// IPv6
+				IP[0] = 0;
+				IP[1] = 0;
+				IP[2] = 0;
+				IP[3] = 0;
+
+				IP[4] = 0;
+				IP[5] = 0;
+				IP[6] = 0;
+				IP[7] = 0;
+
+				IP[8] = 0;
+				IP[9] = 0;
+				IP[10] = 0;
+				IP[11] = 0;
+
+				IP[12] = 0;
+				IP[13] = 0;
+				IP[14] = 0;
+				IP[15] = 0;				
+			} else {
+				// IPv4
+				IP[0] = 0;
+				IP[1] = 0;
+				IP[2] = 0;
+				IP[3] = 0;
+			}
+
 			pt = 0;
 		}
 
@@ -216,11 +258,20 @@ public class Socks5Impl extends Socks4Impl {
 	}
 
 	public void bindReply(byte replyCode, InetAddress IA, int PT) {
-		byte[] IP = {0, 0, 0, 0};
+		byte[] IP = {};
+		if (ADDRESS_TYPE == 0x04) {
+			for(int i = 0; i < 8; i++) {
+				IP[i] = 0;
+			}
+		} else {
+			for(int i = 0; i < 4; i++) {
+				IP[i] = 0;
+			}
+		}
 
-		LOGGER.debug("BIND Reply to Client \"" + replyName(replyCode) + "\"");
+		SocksServer.callback.debug("BIND Reply to Client \"" + replyName(replyCode) + "\"");
 
-		byte[] REPLY = new byte[10];
+		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[22] : new byte[10];
 		if (IA != null) IP = IA.getAddress();
 
 		formGenericReply((byte) ((int) replyCode - 90), PT, REPLY, IP);
@@ -228,19 +279,19 @@ public class Socks5Impl extends Socks4Impl {
 		if (m_Parent.isActive()) {
 			m_Parent.sendToClient(REPLY);
 		} else {
-			LOGGER.debug("BIND - Closed Client Connection");
+			SocksServer.callback.debug("BIND - Closed Client Connection");
 		}
 	}
 
 	public void udpReply(byte replyCode, InetAddress IA, int pt) {
-		LOGGER.debug("Reply to Client \"" + replyName(replyCode) + "\"");
+		SocksServer.callback.debug("Reply to Client \"" + replyName(replyCode) + "\"");
 
 		if (m_Parent.m_ClientSocket == null) {
-			LOGGER.debug("Error in UDP_Reply() - Client socket is NULL");
+			SocksServer.callback.debug("Error in UDP_Reply() - Client socket is NULL");
 		}
 		byte[] IP = IA.getAddress();
 
-		byte[] REPLY = new byte[10];
+		byte[] REPLY = (ADDRESS_TYPE == 0x04) ? new byte[22] : new byte[10];
 
 		formGenericReply(replyCode, pt, REPLY, IP);
 
@@ -251,13 +302,37 @@ public class Socks5Impl extends Socks4Impl {
 		REPLY[0] = SocksConstants.SOCKS5_Version;
 		REPLY[1] = replyCode;
 		REPLY[2] = 0x00;        // Reserved	'00'
-		REPLY[3] = 0x01;        // DOMAIN NAME Address Type IP v4
+		if (ADDRESS_TYPE == 0x04) {
+			REPLY[3] = 0x04;
+		} else {
+			REPLY[3] = 0x01;
+		} // DOMAIN NAME Address Type IP v4
 		REPLY[4] = IP[0];
 		REPLY[5] = IP[1];
 		REPLY[6] = IP[2];
 		REPLY[7] = IP[3];
-		REPLY[8] = (byte) ((pt & 0xFF00) >> 8);// Port High
-		REPLY[9] = (byte) (pt & 0x00FF);      // Port Low
+		if (ADDRESS_TYPE == 0x04) {
+			REPLY[8] = IP[4];
+			REPLY[9] = IP[5];
+			REPLY[10] = IP[6];
+			REPLY[11] = IP[7];
+
+			REPLY[12] = IP[8];
+			REPLY[13] = IP[9];
+			REPLY[14] = IP[10];
+			REPLY[15] = IP[11];
+
+			REPLY[16] = IP[12];
+			REPLY[17] = IP[13];
+			REPLY[18] = IP[14];
+			REPLY[19] = IP[15];
+
+			REPLY[20] = (byte) ((pt & 0xFF00) >> 8);// Port High
+			REPLY[21] = (byte) (pt & 0x00FF);      // Port Low
+ 		} else {
+			REPLY[8] = (byte) ((pt & 0xFF00) >> 8);// Port High
+			REPLY[9] = (byte) (pt & 0x00FF);      // Port Low
+		}
 	}
 
 	public void udp() throws IOException {
@@ -278,13 +353,13 @@ public class Socks5Impl extends Socks4Impl {
 		// IP/Port where Server will listen
 		udpReply((byte) 0, MyIP, MyPort);
 
-		LOGGER.debug("UDP Listen at: <" + MyIP.toString() + ":" + MyPort + ">");
+		SocksServer.callback.debug("UDP Listen at: <" + MyIP.toString() + ":" + MyPort + ">");
 
-                while (m_Parent.checkClientData() >= 0) {
-                        processUdp();
-                        Thread.onSpinWait();
-                }
-		LOGGER.debug("UDP - Closed TCP Master of UDP Association");
+		while (m_Parent.checkClientData() >= 0) {
+			processUdp();
+			Thread.onSpinWait();
+		}
+		SocksServer.callback.debug("UDP - Closed TCP Master of UDP Association");
 	}
 
 	private void initUdpInOut() throws IOException {
@@ -330,7 +405,7 @@ public class Socks5Impl extends Socks4Impl {
 				IAlen = buffer[p] + 1;
 				break; // One for Size Byte
 			default:
-				LOGGER.debug("Error in ClearDGPhead() - Invalid Destination IP Addres type " + AType);
+				SocksServer.callback.debug("Error in ClearDGPhead() - Invalid Destination IP Addres type " + AType);
 				return null;
 		}
 
@@ -342,7 +417,7 @@ public class Socks5Impl extends Socks4Impl {
 		UDP_port = Utils.calcPort(buffer[p++], buffer[p++]);
 
 		if (UDP_IA == null) {
-			LOGGER.debug("Error in ClearDGPHead() - Invalid UDP dest IP address: NULL");
+			SocksServer.callback.debug("Error in ClearDGPHead() - Invalid UDP dest IP address: NULL");
 			return null;
 		}
 
@@ -364,7 +439,7 @@ public class Socks5Impl extends Socks4Impl {
 			try {
 				DGSocket.send(DGP);
 			} catch (IOException e) {
-				LOGGER.debug("Error in ProcessUDPClient() - Failed to Send DGP to " + LogString);
+				SocksServer.callback.debug("Error in ProcessUDPClient() - Failed to Send DGP to " + LogString);
 			}
 		}
 	}
@@ -376,7 +451,7 @@ public class Socks5Impl extends Socks4Impl {
 		} catch (InterruptedIOException e) {
 			return;    // Time Out
 		} catch (IOException e) {
-			LOGGER.debug("Error in ProcessUDP() - " + e.toString());
+			SocksServer.callback.debug("Error in ProcessUDP() - " + e.toString());
 			return;
 		}
 
@@ -389,7 +464,7 @@ public class Socks5Impl extends Socks4Impl {
 		try {
 			initUdpInOut();    // Clean DGPack & Buffer
 		} catch (IOException e) {
-			LOGGER.debug("IOError in Init_UDP_IO() - " + e.toString());
+			SocksServer.callback.debug("IOError in Init_UDP_IO() - " + e.toString());
 			m_Parent.close();
 		}
 	}
@@ -408,11 +483,11 @@ public class Socks5Impl extends Socks4Impl {
 		if (Buf.length <= 0) return;
 
 		if (UDP_IA == null) {
-			LOGGER.debug("Error in ProcessUDPClient() - Invalid Destination IP - NULL");
+			SocksServer.callback.debug("Error in ProcessUDPClient() - Invalid Destination IP - NULL");
 			return;
 		}
 		if (UDP_port == 0) {
-			LOGGER.debug("Error in ProcessUDPClient() - Invalid Destination Port - 0");
+			SocksServer.callback.debug("Error in ProcessUDPClient() - Invalid Destination Port - 0");
 			return;
 		}
 
@@ -421,7 +496,7 @@ public class Socks5Impl extends Socks4Impl {
 			m_nServerPort = UDP_port;
 		}
 
-		LOGGER.debug("Datagram : " + Buf.length + " bytes : " + getSocketInfo(DGPack) +
+		SocksServer.callback.debug("Datagram : " + Buf.length + " bytes : " + getSocketInfo(DGPack) +
 				" >> <" + Utils.iP2Str(m_ServerIP) + ":" + m_nServerPort + ">");
 
 		DatagramPacket DGPSend = new DatagramPacket(Buf, Buf.length,
@@ -432,7 +507,7 @@ public class Socks5Impl extends Socks4Impl {
 
 
 	public void processUdpRemote() {
-		LOGGER.debug(format("Datagram : %d bytes : <%s:%d> << %s",
+		SocksServer.callback.debug(format("Datagram : %d bytes : <%s:%d> << %s",
 				DGPack.getLength(), Utils.iP2Str(m_ClientIP), m_nClientPort, getSocketInfo(DGPack)));
 
 		// This Method must be CALL only from <ProcessUDP()>
