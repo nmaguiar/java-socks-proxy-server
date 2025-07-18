@@ -48,7 +48,7 @@ public class SocksServer {
 	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory, Callback callback) {
 		SocksServer.callback = callback;
 		this.stopping = false;
-		pool.execute(new ServerProcess(listenPort, serverSocketFactory));
+    Thread.startVirtualThread(new ServerProcess(listenPort, serverSocketFactory));
 	}
 
 	public synchronized void stop() {
@@ -120,7 +120,7 @@ public class SocksServer {
 				final Socket clientSocket = listenSocket.accept();
 				clientSocket.setSoTimeout(SocksConstants.DEFAULT_SERVER_TIMEOUT);
 				SocksServer.callback.debug("Connection from : " + Utils.getSocketInfo(clientSocket));
-				new Thread(new ProxyHandler(clientSocket)).start();
+                                Thread.startVirtualThread(new ProxyHandler(clientSocket));
 			} catch (InterruptedIOException e) {
 				// This exception is thrown when accept timeout is expired
 			} catch (Exception e) {

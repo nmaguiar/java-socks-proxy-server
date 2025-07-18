@@ -1,8 +1,10 @@
 package org.bbottema.javasocksproxyserver;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.DatagramPacket;
@@ -355,7 +357,7 @@ public class Socks5Impl extends Socks4Impl {
 
 		while (m_Parent.checkClientData() >= 0) {
 			processUdp();
-			Thread.yield();
+			Thread.onSpinWait();
 		}
 		SocksServer.callback.debug("UDP - Closed TCP Master of UDP Association");
 	}

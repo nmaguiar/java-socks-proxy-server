@@ -210,7 +210,7 @@ public class ProxyHandler implements Runnable {
 			try {
 				b = m_ClientInput.read();
 			} catch (InterruptedIOException e) {
-				Thread.yield();
+                                Thread.onSpinWait();
 				continue;
 			}
 			return (byte) b; // return loaded byte
@@ -244,7 +244,7 @@ public class ProxyHandler implements Runnable {
 				sendToClient(m_Buffer, dlen);
 			}
 
-			Thread.yield();
+                        Thread.onSpinWait();
 		}
 	}
 

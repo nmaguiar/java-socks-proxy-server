@@ -296,7 +296,7 @@ public class Socks4Impl {
 			} catch (InterruptedIOException e) {
 				// ignore
 			}
-			Thread.yield();
+                        Thread.onSpinWait();
 		}
 
 		m_ServerIP = socket.getInetAddress();
