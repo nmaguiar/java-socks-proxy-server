@@ -280,10 +280,10 @@ public class Socks5Impl extends Socks4Impl {
 
 		LOGGER.debug("UDP Listen at: <" + MyIP.toString() + ":" + MyPort + ">");
 
-		while (m_Parent.checkClientData() >= 0) {
-			processUdp();
-			Thread.yield();
-		}
+                while (m_Parent.checkClientData() >= 0) {
+                        processUdp();
+                        Thread.onSpinWait();
+                }
 		LOGGER.debug("UDP - Closed TCP Master of UDP Association");
 	}
 
