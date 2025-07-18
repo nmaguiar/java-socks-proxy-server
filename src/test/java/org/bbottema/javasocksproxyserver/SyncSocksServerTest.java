@@ -4,6 +4,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.ServerSocket;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import static org.junit.Assert.*;
 
@@ -62,6 +65,88 @@ public class SyncSocksServerTest {
 
         server.stop();
         socket.close();
+    }
+
+    @Test
+    public void socks4_connects_and_relays() throws Exception {
+        try (ServerSocket echo = new ServerSocket(0)) {
+            Thread echoThread = Thread.startVirtualThread(() -> {
+                try (Socket s = echo.accept()) {
+                    int b = s.getInputStream().read();
+                    s.getOutputStream().write(b);
+                } catch (IOException ignored) {
+                }
+            });
+
+            SyncSocksServer proxy = new SyncSocksServer();
+            int proxyPort = Utils.getFreePort();
+            proxy.start(proxyPort);
+
+            try (Socket client = new Socket("localhost", proxyPort)) {
+                client.setSoTimeout(1000);
+                OutputStream out = client.getOutputStream();
+                InputStream in = client.getInputStream();
+                int destPort = echo.getLocalPort();
+                byte[] request = new byte[] {
+                        0x04, 0x01,
+                        (byte) (destPort >> 8), (byte) destPort,
+                        127, 0, 0, 1,
+                        0x00
+                };
+                out.write(request);
+                out.flush();
+                in.readNBytes(8);
+
+                out.write(55);
+                assertEquals(55, in.read());
+            }
+
+            proxy.stop();
+            echoThread.join(1000);
+        }
+    }
+
+    @Test
+    public void socks5_connects_and_relays() throws Exception {
+        try (ServerSocket echo = new ServerSocket(0)) {
+            Thread echoThread = Thread.startVirtualThread(() -> {
+                try (Socket s = echo.accept()) {
+                    int b = s.getInputStream().read();
+                    s.getOutputStream().write(b);
+                } catch (IOException ignored) {
+                }
+            });
+
+            SyncSocksServer proxy = new SyncSocksServer();
+            int proxyPort = Utils.getFreePort();
+            proxy.start(proxyPort);
+
+            try (Socket client = new Socket("localhost", proxyPort)) {
+                client.setSoTimeout(1000);
+                OutputStream out = client.getOutputStream();
+                InputStream in = client.getInputStream();
+
+                out.write(new byte[] {0x05, 0x01, 0x00});
+                out.flush();
+                in.readNBytes(2);
+
+                int destPort = echo.getLocalPort();
+                byte[] req = new byte[] {
+                        0x05, 0x01, 0x00, 0x01,
+                        127, 0, 0, 1,
+                        (byte) (destPort >> 8), (byte) destPort
+                };
+                out.write(req);
+                out.flush();
+                in.readNBytes(10);
+
+                out.write(11);
+                assertEquals(11, in.read());
+            }
+
+            proxy.stop();
+            echoThread.join(1000);
+        }
     }
 
 }

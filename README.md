@@ -16,6 +16,9 @@ It is a continuation of https://github.com/damico/java-socks-proxy-server.
 </dependency>
 ```
 
+This library requires **Java&nbsp;21** or newer to leverage virtual threads for
+handling connections efficiently.
+
 ## Usage:
 
 ```

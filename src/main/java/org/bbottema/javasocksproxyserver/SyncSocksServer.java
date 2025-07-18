@@ -59,9 +59,8 @@ public class SyncSocksServer {
             return;
         }
         ServerProcess serverProcess = new ServerProcess(listenPort, serverSocketFactory);
-        Thread thread = new Thread(serverProcess);
+        Thread thread = Thread.ofVirtual().name("socks-server-" + listenPort).start(serverProcess);
         servers.put(listenPort, thread);
-        thread.start();
         if (!serverProcess.waitServerSocketOpened(serverSocketOpenTimeoutMillis)) {
             throw new RuntimeException("Timeout waiting socket to be opened");
         }
@@ -135,9 +134,8 @@ public class SyncSocksServer {
                 clientSocket.setSoTimeout(SocksConstants.DEFAULT_SERVER_TIMEOUT);
                 LOGGER.debug("Connection from : " + Utils.getSocketInfo(clientSocket));
                 ProxyHandler handler = new ProxyHandler(clientSocket);
-                Thread thread = new Thread(handler);
+                Thread thread = Thread.ofVirtual().name("client-" + clientSocket.getPort()).start(handler);
                 clients.add(ProxyClient.of(clientSocket, handler, thread));
-                thread.start();
             } catch (InterruptedIOException e) {
                 //	This exception is thrown when accept timeout is expired
             } catch (Exception e) {
