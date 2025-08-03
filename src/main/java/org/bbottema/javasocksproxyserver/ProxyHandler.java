@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.locks.ReentrantLock;
+import javax.net.SocketFactory;
 
 import static java.lang.String.format;
 import static org.bbottema.javasocksproxyserver.Utils.getSocketInfo;
@@ -24,20 +25,27 @@ public class ProxyHandler implements Runnable {
 	private ReentrantLock m_lock;
 	private Socks4Impl comm = null;
 
-	Socket m_ClientSocket;
-	Socket m_ServerSocket = null;
-	byte[] m_Buffer = new byte[SocksConstants.DEFAULT_BUF_SIZE];
+        Socket m_ClientSocket;
+        Socket m_ServerSocket = null;
+        byte[] m_Buffer = new byte[SocksConstants.DEFAULT_BUF_SIZE];
 
-	public ProxyHandler(Socket clientSocket) {
-		m_lock = new ReentrantLock();
-		m_ClientSocket = clientSocket;
-		try {
-			m_ClientSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
-		} catch (SocketException e) {
-			SocksServer.callback.error("Socket Exception during seting Timeout.");
-		}
-		SocksServer.callback.debug("Proxy Created.");
-	}
+        private final SocketFactory socketFactory;
+
+        public ProxyHandler(Socket clientSocket) {
+                this(clientSocket, SocketFactory.getDefault());
+        }
+
+        public ProxyHandler(Socket clientSocket, SocketFactory socketFactory) {
+                m_lock = new ReentrantLock();
+                m_ClientSocket = clientSocket;
+                this.socketFactory = socketFactory;
+                try {
+                        m_ClientSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
+                } catch (SocketException e) {
+                        SocksServer.callback.error("Socket Exception during seting Timeout.");
+                }
+                SocksServer.callback.debug("Proxy Created.");
+        }
 
 	public void setLock(ReentrantLock lock) {
 		this.m_lock = lock;
@@ -133,11 +141,11 @@ public class ProxyHandler implements Runnable {
 			return;
 		}
 
-		m_ServerSocket = new Socket(server, port);
-		m_ServerSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
+                m_ServerSocket = socketFactory.createSocket(server, port);
+                m_ServerSocket.setSoTimeout(SocksConstants.DEFAULT_PROXY_TIMEOUT);
 
-		SocksServer.callback.debug("Connected to " + getSocketInfo(m_ServerSocket));
-		prepareServer();
+                SocksServer.callback.debug("Connected to " + getSocketInfo(m_ServerSocket));
+                prepareServer();
 	}
 
 	protected void prepareServer() throws IOException {

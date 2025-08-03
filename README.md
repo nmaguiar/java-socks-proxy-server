@@ -24,6 +24,8 @@ SocksServer socksServer = new SocksServer();
 socksServer.start(100); // start serving clients on port 100
 socksServer.start(200); // start serving clients on port 200
 socksServer.start(300, myCustomServerSocketFactory); // eg. SSL on port 300
+socksServer.start(400, myCustomSocketFactory); // custom socket factory for outbound connections
+socksServer.start(500, myCustomServerSocketFactory, myCustomSocketFactory); // custom factory for both inbound and outbound
 
 socksServer.stop(); // stops server on all ports
 ```
@@ -36,8 +38,13 @@ For use in junit tests:
 	
 	// or
 	
-	@ClassRule
-	public static final SockServerRule sockServerRule = new SockServerRule(PROXY_SERVER_PORT, myServerSocketFactory);
+        @ClassRule
+        public static final SockServerRule sockServerRule = new SockServerRule(PROXY_SERVER_PORT, myServerSocketFactory);
+
+        // or
+
+        @ClassRule
+        public static final SockServerRule sockServerRule = new SockServerRule(PROXY_SERVER_PORT, myServerSocketFactory, mySocketFactory);
 ```
 
 And that's it!

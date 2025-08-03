@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ServerSocketFactory;
+import javax.net.SocketFactory;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.ServerSocket;
@@ -29,27 +30,46 @@ public class SocksServer {
 		this.pool = Executors.newCachedThreadPool();
 	}
 
-	public synchronized void start(int listenPort) {
-		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
-		start(listenPort, ServerSocketFactory.getDefault());
-	}
+        public synchronized void start(int listenPort) {
+                if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
+                start(listenPort, ServerSocketFactory.getDefault(), SocketFactory.getDefault());
+        }
 
-	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory) {
-		if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
-		this.stopping = false;
-		pool.execute(new ServerProcess(listenPort, serverSocketFactory));
-	}
+        public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory) {
+                if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
+                start(listenPort, serverSocketFactory, SocketFactory.getDefault());
+        }
 
-	public synchronized void start(int listenPort, Callback callback) {
-		SocksServer.callback = callback;
-		start(listenPort, ServerSocketFactory.getDefault());
-	}
+        public synchronized void start(int listenPort, SocketFactory socketFactory) {
+                if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
+                start(listenPort, ServerSocketFactory.getDefault(), socketFactory);
+        }
 
-	public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory, Callback callback) {
-		SocksServer.callback = callback;
-		this.stopping = false;
-		pool.execute(new ServerProcess(listenPort, serverSocketFactory));
-	}
+        public synchronized void start(int listenPort, Callback callback) {
+                SocksServer.callback = callback;
+                start(listenPort, ServerSocketFactory.getDefault(), SocketFactory.getDefault());
+        }
+
+        public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory, Callback callback) {
+                SocksServer.callback = callback;
+                start(listenPort, serverSocketFactory, SocketFactory.getDefault());
+        }
+
+        public synchronized void start(int listenPort, SocketFactory socketFactory, Callback callback) {
+                SocksServer.callback = callback;
+                start(listenPort, ServerSocketFactory.getDefault(), socketFactory);
+        }
+
+        public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory, SocketFactory socketFactory) {
+                if (SocksServer.callback == null) SocksServer.callback = new CallbackImpl(LOGGER);
+                this.stopping = false;
+                pool.execute(new ServerProcess(listenPort, serverSocketFactory, socketFactory));
+        }
+
+        public synchronized void start(int listenPort, ServerSocketFactory serverSocketFactory, SocketFactory socketFactory, Callback callback) {
+                SocksServer.callback = callback;
+                start(listenPort, serverSocketFactory, socketFactory);
+        }
 
 	public synchronized void stop() {
 		stopping = true;
@@ -74,12 +94,14 @@ public class SocksServer {
 	private class ServerProcess implements Runnable {
 
 		protected final int port;
-		private final ServerSocketFactory serverSocketFactory;
+                private final ServerSocketFactory serverSocketFactory;
+                private final SocketFactory socketFactory;
 
-		public ServerProcess(int port, ServerSocketFactory serverSocketFactory) {
-			this.port = port;
-			this.serverSocketFactory = serverSocketFactory;
-		}
+                public ServerProcess(int port, ServerSocketFactory serverSocketFactory, SocketFactory socketFactory) {
+                        this.port = port;
+                        this.serverSocketFactory = serverSocketFactory;
+                        this.socketFactory = socketFactory;
+                }
 
 		@Override
 		public void run() {
@@ -117,10 +139,10 @@ public class SocksServer {
 
 		private void handleNextClient(ServerSocket listenSocket) {
 			try {
-				final Socket clientSocket = listenSocket.accept();
-				clientSocket.setSoTimeout(SocksConstants.DEFAULT_SERVER_TIMEOUT);
-				SocksServer.callback.debug("Connection from : " + Utils.getSocketInfo(clientSocket));
-				new Thread(new ProxyHandler(clientSocket)).start();
+                                final Socket clientSocket = listenSocket.accept();
+                                clientSocket.setSoTimeout(SocksConstants.DEFAULT_SERVER_TIMEOUT);
+                                SocksServer.callback.debug("Connection from : " + Utils.getSocketInfo(clientSocket));
+                                new Thread(new ProxyHandler(clientSocket, socketFactory)).start();
 			} catch (InterruptedIOException e) {
 				// This exception is thrown when accept timeout is expired
 			} catch (Exception e) {
